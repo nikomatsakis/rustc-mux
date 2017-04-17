@@ -1,0 +1,127 @@
+#!/bin/bash
+
+### First, try to find RUST_ROOT by skimming the current directory.
+
+# Set global variable RUST_ROOT to the suitable root of a checkout.
+function find_root {
+    if [ -n "$RUST_ROOT" ]; then
+        return 0
+    fi
+
+    local DIR="$PWD"
+    while [[ "$DIR" != "/" && "$DIR" != "$HOME" ]]; do
+        if [[ -r "$DIR/src/librustc" ]]; then
+            RUST_ROOT="$DIR"
+            return 0
+        fi
+        DIR=$(dirname "$DIR")
+    done
+    
+    echo 'Could not find a suitable rust to run; try setting RUST_ROOT'
+    echo ''
+    echo 'e.g., export RUST_ROOT=~/versioned/rust-1/'
+    exit 1
+}
+
+find_root
+
+### Process arguments
+
+STAGES=""
+
+if [ "$1" == "" ]
+then
+    echo "rustc [--stage[012]] [--echo] [--gdb|--ldb] ..."
+    exit 1
+fi
+
+if [ "$1" == "--stage0" ]
+then
+    shift
+    STAGES=stage0
+fi
+
+if [ "$1" == "--stage1" ]
+then
+    shift
+    STAGES=stage1
+fi
+
+if [ "$1" == "--stage2" ]
+then
+    shift
+    STAGES=stage2
+fi
+
+if [ "$1" == "--echo" ]
+then
+    shift
+    ECHO=1
+else
+    ECHO=0
+fi
+
+if [ "$1" == "--gdb" ]
+then
+    shift
+    GDB="gdb --args"
+elif [ "$1" == "--ldb" ]
+then
+    shift
+    GDB="lldb --"
+else
+    GDB=""
+fi
+
+### Find the path to rustc executable based on RUST_ROOT and stage arguments
+
+if [ -z "$STAGES" ]; then
+    STAGES="stage2 stage1"
+fi
+
+# Set global variable R to the path to rustc executable.
+function find_rustc {
+    local STAGE
+    local RUSTC
+
+    for STAGE in ${STAGES}; do
+        # Use glob to search through all architectures. 
+        # But if some stage doesn't exist, then
+        # the glob will keep the "*" rather than return the
+        # empty set, so we have to check within the for loop
+        # too.
+        for RUSTC in "$RUST_ROOT"/build/*/$STAGE/bin/rustc; do
+            if [[ -x "$RUSTC" ]]; then
+                R="$RUSTC"
+                return 0
+            fi
+        done
+    done
+
+    echo "Could not find suitable rustc"
+    echo "STAGES=$STAGES"
+    echo "RUST_ROOT=$RUST_ROOT"
+    exit 1
+}
+
+find_rustc
+D="$(dirname "$R")"
+
+if [ "$(uname)" == "Darwin" ]
+then
+    VAR=DYLD_LIBRARY_PATH
+else
+    VAR=LD_LIBRARY_PATH
+fi
+
+if [[ -x "$R" ]]; then
+  if (($ECHO)); then
+    echo $VAR="$D/../lib:$LD_LIBRARY_PATH" $GDB "$R" "$@"
+  else
+    env $VAR="$D/../lib:$LD_LIBRARY_PATH" $GDB "$R" "$@"
+  fi
+  exit $?
+fi
+
+echo > /dev/stderr "ERROR: Could not find an appropriate rustc to execute from dir $PWD!"
+exit 1
