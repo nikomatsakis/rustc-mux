@@ -4,7 +4,14 @@ A rustup-compatible rustc toolchain that selects which version of `rustc` to use
 
 ### To install
 
-Clone this repo and change into the repo directory. Then execute:
+Clone this repo and change into the repo directory:
+
+```
+git clone git@github.com:nikomatsakis/rustc-mux.git
+cd rustc-mux
+```
+
+Then execute:
 
 ```
 rustup toolchain link mux $PWD
@@ -24,6 +31,12 @@ your default in just those directories:
 ```
 cd /path/to/some/rustc/checkout
 rustup override set mux
+```
+
+Or you can just select to use `mux` on any individual execution:
+
+```
+rustc +mux ...
 ```
 
 ### How `rustc` selects which rust executable to use by default
