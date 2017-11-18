@@ -69,6 +69,10 @@ elif [ "$1" == "--ldb" ]
 then
     shift
     GDB="lldb --"
+elif [ "$1" == "--massif" ]
+then
+    shift
+    GDB="valgrind --tool=massif --"
 else
     GDB=""
 fi
@@ -107,18 +111,11 @@ function find_rustc {
 find_rustc
 D="$(dirname "$R")"
 
-if [ "$(uname)" == "Darwin" ]
-then
-    VAR=DYLD_LIBRARY_PATH
-else
-    VAR=LD_LIBRARY_PATH
-fi
-
 if [[ -x "$R" ]]; then
   if (($ECHO)); then
-    echo $VAR="$D/../lib:$LD_LIBRARY_PATH" $GDB "$R" "$@"
+    echo $GDB "$R" "$@"
   else
-    env $VAR="$D/../lib:$LD_LIBRARY_PATH" $GDB "$R" "$@"
+    env $GDB "$R" "$@"
   fi
   exit $?
 fi
