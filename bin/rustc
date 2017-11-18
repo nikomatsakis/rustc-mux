@@ -31,7 +31,7 @@ STAGES=""
 
 if [ "$1" == "" ]
 then
-    echo "rustc [--stage[012]] [--echo] [--gdb|--ldb] ..."
+    echo "rustc [--stage[012]] [--echo] [--gdb|--ldb|--massif] ..."
     exit 1
 fi
 
